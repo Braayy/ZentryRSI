@@ -13,9 +13,6 @@ Download the source and execute `mvn install`
   </dependency>
 </dependencies>
 ```
-  
-#### Wiki:
-https://github.com/ZentryOrg/ZentryRSI/wiki
 
 #### Developer:
 ```java
