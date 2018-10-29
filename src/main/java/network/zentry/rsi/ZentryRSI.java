@@ -2,10 +2,6 @@ package network.zentry.rsi;
 
 import network.zentry.rsi.annotation.ZentryRequest;
 import network.zentry.rsi.types.MethodType;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
@@ -17,7 +13,6 @@ import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ZentryRSI {
@@ -59,7 +54,7 @@ public class ZentryRSI {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return 404;
+        return 500;
     }
 
     private void setUsernameAndPassword() {
@@ -75,20 +70,18 @@ public class ZentryRSI {
     }
 
     private StringBuilder setParameters() {
-        StringBuilder stringBuilder = new StringBuilder();
+        StringBuilder sb = new StringBuilder();
         AtomicBoolean endsWith = new AtomicBoolean(request.endsWith("/") || request.endsWith("?"));
         new ArrayDeque<>(parameters.entrySet())
                 .descendingIterator()
                 .forEachRemaining(parameter -> {
                     if (endsWith.get()) {
-                        stringBuilder.append(parameter);
+                        sb.append(parameter);
                         endsWith.set(false);
-                    } else {
-                        stringBuilder.append("&" + parameter);
-                    }
+                    } else sb.append("&").append(parameter);
                 });
         parameters.clear();
-        return stringBuilder;
+        return sb;
     }
 
     private void sendPost() throws IOException {
@@ -101,61 +94,36 @@ public class ZentryRSI {
         }
     }
 
-    public String sendRequest() {
-        try {
-            if (methodType == MethodType.GET)
-                httpURLConnection = (HttpURLConnection) new URL(request += setParameters().toString()).openConnection();
-            else
-                httpURLConnection = (HttpURLConnection) new URL(request).openConnection();
+    public CompletableFuture<String> sendRequest() {
+        CompletableFuture<String> cf = new CompletableFuture<>();
+        CompletableFuture.runAsync(() -> {
+            try {
+                httpURLConnection = (HttpURLConnection) new URL(methodType == MethodType.GET ? request += setParameters().toString() : request).openConnection();
+                httpURLConnection.setRequestMethod(methodType.name());
+                properties.forEach((key, value) -> httpURLConnection.setRequestProperty(key, value));
+                properties.clear();
 
-            httpURLConnection.setRequestMethod(methodType.name());
+                setUsernameAndPassword();
+                setToken();
+                sendPost();
 
-            properties.forEach((key, value) -> httpURLConnection.setRequestProperty(key, value));
-            properties.clear();
+                if (httpURLConnection.getResponseCode() == HttpURLConnection.HTTP_OK) {
+                    BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(httpURLConnection.getInputStream()));
+                    String inputLine;
+                    StringBuilder response = new StringBuilder();
 
-            setUsernameAndPassword();
-            setToken();
-            sendPost();
+                    while ((inputLine = bufferedReader.readLine()) != null)
+                        response.append(inputLine);
 
-            if (httpURLConnection.getResponseCode() == HttpURLConnection.HTTP_OK) {
-                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(httpURLConnection.getInputStream()));
-
-                String inputLine;
-                StringBuilder response = new StringBuilder();
-
-                while ((inputLine = bufferedReader.readLine()) != null) {
-                    response.append(inputLine);
+                    bufferedReader.close();
+                    cf.complete(response.toString());
                 }
-                bufferedReader.close();
-
-                CompletableFuture<String> completableFuture = new CompletableFuture<>();
-                completableFuture.complete(response.toString());
-
-                return completableFuture.get();
+            } catch (IOException e) {
+                cf.completeExceptionally(e);
             }
-        } catch (IOException | InterruptedException | ExecutionException e) {
-            e.printStackTrace();
-        }
+        });
 
-        return null;
+        return cf;
     }
 
-    public Object getObjectOrArray(boolean array) {
-        try {
-            if (array) {
-                CompletableFuture<JSONArray> completableFuture = new CompletableFuture<>();
-                completableFuture.complete((JSONArray) new JSONParser().parse(sendRequest()));
-
-                return completableFuture.get();
-            }
-
-            CompletableFuture<JSONObject> completableFuture = new CompletableFuture<>();
-            completableFuture.complete((JSONObject) new JSONParser().parse(sendRequest()));
-
-            return completableFuture.get();
-        } catch (ParseException | InterruptedException | ExecutionException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
 }
