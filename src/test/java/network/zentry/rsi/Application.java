@@ -9,12 +9,17 @@ public class Application {
 
     public static void main(String[] args) {
         long initial = System.currentTimeMillis();
-        ZentryRSI zentryRSI = new ZentryRSI("localhost:8080/minecraft/add?");
-        zentryRSI.setMethodRequest(MethodType.POST);
+        ZentryRSI zentryRSI = new ZentryRSI("https://api.thecatapi.com/v1/images/search?format=json");
+        zentryRSI.setMethodRequest(MethodType.GET);
         zentryRSI.setUserAgent(UserAgentType.allUserAgent());
-        zentryRSI.addParameter("uuid", "e543fe0d-c26a-4906-a50f-3bfca5e32239");
-        System.out.println(zentryRSI.sendRequest());
-        System.out.println(System.currentTimeMillis() - initial + "ms");
+        zentryRSI.sendRequest().whenComplete((r, e) -> {
+            if(e != null) {
+                e.printStackTrace();
+                return;
+            }
+
+            System.out.println("Response (" + new DecimalFormat("#,###").format(System.currentTimeMillis() - initial) + "s): " + r);
+        });
     }
 
 }
