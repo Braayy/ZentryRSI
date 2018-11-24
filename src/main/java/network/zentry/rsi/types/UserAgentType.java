@@ -1,5 +1,7 @@
 package network.zentry.rsi.types;
 
+import java.util.Arrays;
+
 public enum UserAgentType {
 
     MOZILLA("Mozilla/5.0 (Windows NT 10.0; Win64; x64)"),
@@ -19,11 +21,8 @@ public enum UserAgentType {
     }
 
     public static String allUserAgent() {
-        StringBuilder stringBuilder = new StringBuilder();
-
-        for (UserAgentType userAgentType : values())
-            stringBuilder.append(userAgentType.getUserAgent() + " ");
-
-        return stringBuilder.toString().trim();
+        StringBuilder sb = new StringBuilder();
+        Arrays.stream(UserAgentType.values()).forEach(u -> sb.append(u.getUserAgent()).append(" "));
+        return sb.toString().trim();
     }
 }
