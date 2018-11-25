@@ -1,0 +1,16 @@
+plugins {
+    id 'java'
+}
+
+group 'network.zentry'
+version '2.0.1'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile 'org.projectlombok:lombok:1.18.4'
+}

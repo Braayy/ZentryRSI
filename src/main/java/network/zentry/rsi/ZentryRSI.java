@@ -3,10 +3,13 @@ package network.zentry.rsi;
 import lombok.Getter;
 import lombok.Setter;
 import network.zentry.rsi.annotation.ZentryRequest;
+import network.zentry.rsi.async.ZentryCallback;
 import network.zentry.rsi.builder.Parameter;
 import network.zentry.rsi.builder.ZentryBuilder;
+import network.zentry.rsi.thread.ZentryThread;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 @Getter @Setter
 public class ZentryRSI {
@@ -28,5 +31,13 @@ public class ZentryRSI {
         this.post = zentryBuilder.isPost();
         this.parameters = zentryBuilder.getParameters();
         this.headers = zentryBuilder.getHeaders();
+    }
+
+    public String send() {
+        return new ZentryThread(this).send();
+    }
+
+    public void sendAsync(ZentryCallback callback) {
+        new ZentryThread(this).sendAsync(callback);
     }
 }
